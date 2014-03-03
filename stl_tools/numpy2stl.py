@@ -100,16 +100,19 @@ def numpy2stl(A, fn, scale=0.1, mask_val=None, ascii=False,
     """
 
     m, n = A.shape
-    if n >= m:
+    #if n >= m:
+    #    print "Rotating"
         # rotate to best fit a printing platform
-        A = np.rot90(A, k=3)
-        m, n = n, m
-    A = scale * (A - A.min())
+    #    A = np.rot90(A, k=3)
+    #    m, n = n, m
+    #Scale input
+    #A = scale * (A - A.min())
 
     if not mask_val:
         mask_val = A.min() - 1.
 
     if c_lib and not force_python:  # try to use c library
+        print "Running c version"
         # needed for memoryviews
         A = np.ascontiguousarray(A, dtype=float)
 
@@ -187,15 +190,24 @@ def numpy2stl(A, fn, scale=0.1, mask_val=None, ascii=False,
             facets = np.concatenate([facets, bottom])
 
     xsize = facets[:, 3::3].ptp()
-    if xsize > max_width:
-        facets = facets * float(max_width) / xsize
-
     ysize = facets[:, 4::3].ptp()
-    if ysize > max_depth:
-        facets = facets * float(max_depth) / ysize
-
     zsize = facets[:, 5::3].ptp()
-    if zsize > max_height:
-        facets = facets * float(max_height) / zsize
+    print xsize
+    print ysize
+    print zsize
+
+    #out_scale = min(float(max_width)/xsize, float(max_depth)/ysize)
+    out_scale = min(float(max_width)/ysize, float(max_depth)/xsize)
+    if out_scale < 1.0:
+        #facets = facets * float(max_width) / xsize
+        facets[:, 3::3] = facets[:, 3::3] * out_scale 
+        facets[:, 4::3] = facets[:, 4::3] * out_scale 
+
+    #Input should already have appropriate z in mm
+    #zsize = facets[:, 5::3].ptp()
+    #print zsize
+    #if zsize > max_height:
+        #facets = facets * float(max_height) / zsize
+        #facets[:, 5::3] = facets[:, 5::3] * float(max_height) / zsize
 
     writeSTL(facets, fn, ascii=ascii)
